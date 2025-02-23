@@ -11,6 +11,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import org.bson.types.ObjectId;
+
+import java.math.BigDecimal;
 
 @Service
 @RequiredArgsConstructor
@@ -27,12 +30,18 @@ public class IncomeServiceImpl implements IncomeService {
     @Override
     public Mono<Income> getIncomeById(String id) {
         if (id == null || id.isBlank()) {
-            return Mono.error(new IllegalArgumentException("ID cannot be null or empty"));
+            return Mono.error(new ResponseStatusException(HttpStatus.BAD_REQUEST, "ID cannot be null or empty"));
         }
+
+        // Validate ObjectId format
+        if (!ObjectId.isValid(id)) {
+            return Mono.error(new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid ID format"));
+        }
+
         LoggingUtil.logInfo("Fetching income by ID: " + id);
 
         return incomeRepository.findById(id)
-                .switchIfEmpty(Mono.error(new IncomeNotFoundException("Income not found with id: " + id)))
+                .switchIfEmpty(Mono.error(new ResponseStatusException(HttpStatus.NOT_FOUND, "Income not found with id: " + id)))
                 .map(income -> {
                     income.calculateDueBalance(); // Ensure dueBalance is set
                     return income;
@@ -42,7 +51,6 @@ public class IncomeServiceImpl implements IncomeService {
                     return Mono.error(e);
                 });
     }
-
 
     @Override
     public Mono<Income> createIncome(Income income) {
@@ -54,9 +62,21 @@ public class IncomeServiceImpl implements IncomeService {
     @Override
     public Mono<Income> updateIncome(String id, Income income) {
         if (id == null || id.isBlank()) {
-            return Mono.error(new IllegalArgumentException("ID cannot be null or empty"));
+            return Mono.error(new ResponseStatusException(HttpStatus.BAD_REQUEST, "ID cannot be null or empty"));
         }
+
+        // Validate ObjectId format
+        if (!ObjectId.isValid(id)) {
+            return Mono.error(new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid ID format"));
+        }
+
+        // Validate income fields
+        if (income.getAmountReceived() == null || income.getAmountReceived().compareTo(BigDecimal.ZERO) < 0) {
+            return Mono.error(new ResponseStatusException(HttpStatus.BAD_REQUEST, "Amount received must be positive"));
+        }
+
         LoggingUtil.logInfo("Updating income with ID: " + id);
+
         return incomeRepository.findById(id)
                 .flatMap(existingIncome -> {
                     existingIncome.setReason(income.getReason());
@@ -69,11 +89,15 @@ public class IncomeServiceImpl implements IncomeService {
                     existingIncome.setCreatedBy(income.getCreatedBy());
                     return incomeRepository.save(existingIncome);
                 })
-                .switchIfEmpty(Mono.error(new IncomeNotFoundException("Income not found with id: " + id)));
+                .switchIfEmpty(Mono.error(new ResponseStatusException(HttpStatus.NOT_FOUND, "Income not found with id: " + id)));
     }
 
     @Override
     public Mono<Void> deleteIncome(String id) {
+        if (!ObjectId.isValid(id)) { // Validate MongoDB ObjectId format
+            return Mono.error(new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid ID format"));
+        }
+
         return incomeRepository.existsById(id)
                 .flatMap(exists -> {
                     if (!exists) {
@@ -82,5 +106,6 @@ public class IncomeServiceImpl implements IncomeService {
                     return incomeRepository.deleteById(id);
                 });
     }
+
 
 }

@@ -2,6 +2,7 @@ package com.akentech.kbf.income.controller;
 
 import com.akentech.kbf.income.model.Income;
 import com.akentech.kbf.income.service.IncomeService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -34,7 +35,7 @@ public class IncomeController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public Mono<Income> createIncome(@RequestBody Income income) {
+    public Mono<Income> createIncome(@RequestBody @Valid Income income) {
         log.info("Received POST request to create income: {}", income);
         return incomeService.createIncome(income)
                 .doOnSuccess(savedIncome -> log.info("Income created successfully: {}", savedIncome))

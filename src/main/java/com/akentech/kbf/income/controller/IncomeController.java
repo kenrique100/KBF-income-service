@@ -3,6 +3,7 @@ package com.akentech.kbf.income.controller;
 import com.akentech.kbf.income.model.Income;
 import com.akentech.kbf.income.service.IncomeService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -25,6 +26,7 @@ public class IncomeController {
     }
 
     @PostMapping
+    @ResponseStatus(HttpStatus.CREATED)
     public Mono<Income> createIncome(@RequestBody Income income) {
         return incomeService.createIncome(income);
     }
@@ -35,6 +37,7 @@ public class IncomeController {
     }
 
     @DeleteMapping("/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
     public Mono<Void> deleteIncome(@PathVariable String id) {
         return incomeService.deleteIncome(id);
     }

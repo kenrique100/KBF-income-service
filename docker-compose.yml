@@ -1,0 +1,33 @@
+services:
+  income-service:
+    image: akentech/income-service:latest
+    container_name: income-service
+    restart: always
+    environment:
+      SPRING_DATA_MONGODB_URI: mongodb+srv://akentech:Bundes9898@cluster1.ftk04.mongodb.net/income-service?retryWrites=true&w=majority&appName=Cluster1
+      SPRING_PROFILES_ACTIVE: prod
+    ports:
+      - "8081:8080"
+    networks:
+      - kbf
+
+  portainer:
+    image: portainer/portainer-ce
+    container_name: portainer
+    restart: always
+    ports:
+      - "8000:8000"
+      - "9000:9000"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - portainer_data:/data
+    networks:
+      - kbf
+
+volumes:
+  portainer_data:
+    driver: local
+
+networks:
+  kbf:
+    driver: bridge

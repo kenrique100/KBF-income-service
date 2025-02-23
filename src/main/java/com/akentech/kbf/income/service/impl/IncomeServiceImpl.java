@@ -1,6 +1,5 @@
 package com.akentech.kbf.income.service.impl;
 
-import com.akentech.kbf.income.exception.IncomeNotFoundException;
 import com.akentech.kbf.income.model.Income;
 import com.akentech.kbf.income.repository.IncomeRepository;
 import com.akentech.kbf.income.service.IncomeService;

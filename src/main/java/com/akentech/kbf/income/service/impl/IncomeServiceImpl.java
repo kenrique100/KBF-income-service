@@ -24,6 +24,9 @@ public class IncomeServiceImpl implements IncomeService {
 
     @Override
     public Mono<Income> getIncomeById(String id) {
+        if (id == null || id.isBlank()) {
+            return Mono.error(new IllegalArgumentException("ID cannot be null or empty"));
+        }
         LoggingUtil.logInfo("Fetching income by ID: " + id);
         return incomeRepository.findById(id)
                 .switchIfEmpty(Mono.error(new IncomeNotFoundException("Income not found with id: " + id)))
@@ -42,6 +45,9 @@ public class IncomeServiceImpl implements IncomeService {
 
     @Override
     public Mono<Income> updateIncome(String id, Income income) {
+        if (id == null || id.isBlank()) {
+            return Mono.error(new IllegalArgumentException("ID cannot be null or empty"));
+        }
         LoggingUtil.logInfo("Updating income with ID: " + id);
         return incomeRepository.findById(id)
                 .flatMap(existingIncome -> {
@@ -60,6 +66,9 @@ public class IncomeServiceImpl implements IncomeService {
 
     @Override
     public Mono<Void> deleteIncome(String id) {
+        if (id == null || id.isBlank()) {
+            return Mono.error(new IllegalArgumentException("ID cannot be null or empty"));
+        }
         LoggingUtil.logInfo("Deleting income with ID: " + id);
         return incomeRepository.deleteById(id);
     }

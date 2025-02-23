@@ -6,7 +6,9 @@ import com.akentech.kbf.income.repository.IncomeRepository;
 import com.akentech.kbf.income.service.IncomeService;
 import com.akentech.kbf.income.utils.LoggingUtil;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -28,18 +30,24 @@ public class IncomeServiceImpl implements IncomeService {
             return Mono.error(new IllegalArgumentException("ID cannot be null or empty"));
         }
         LoggingUtil.logInfo("Fetching income by ID: " + id);
+
         return incomeRepository.findById(id)
                 .switchIfEmpty(Mono.error(new IncomeNotFoundException("Income not found with id: " + id)))
+                .map(income -> {
+                    income.calculateDueBalance(); // Ensure dueBalance is set
+                    return income;
+                })
                 .onErrorResume(e -> {
                     LoggingUtil.logError("Error fetching income by ID: " + id + ", Error: " + e.getMessage());
                     return Mono.error(e);
                 });
     }
 
+
     @Override
     public Mono<Income> createIncome(Income income) {
         LoggingUtil.logInfo("Creating new income: " + income.getReason());
-        income.calculateDueBalance(); // Calculate due balance before saving
+        income.calculateDueBalance();
         return incomeRepository.save(income);
     }
 
@@ -66,10 +74,13 @@ public class IncomeServiceImpl implements IncomeService {
 
     @Override
     public Mono<Void> deleteIncome(String id) {
-        if (id == null || id.isBlank()) {
-            return Mono.error(new IllegalArgumentException("ID cannot be null or empty"));
-        }
-        LoggingUtil.logInfo("Deleting income with ID: " + id);
-        return incomeRepository.deleteById(id);
+        return incomeRepository.existsById(id)
+                .flatMap(exists -> {
+                    if (!exists) {
+                        return Mono.error(new ResponseStatusException(HttpStatus.NOT_FOUND, "Income not found"));
+                    }
+                    return incomeRepository.deleteById(id);
+                });
     }
+
 }

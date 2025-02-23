@@ -75,6 +75,41 @@ class IncomeControllerIntegrationTest {
     }
 
     @Test
+    void testCreateIncomeWithInvalidData() {
+        // Missing required fields
+        Income invalidIncome = Income.builder()
+                .incomeDate(LocalDate.now())
+                .quantity(1)
+                .amountReceived(BigDecimal.valueOf(500))
+                .expectedAmount(BigDecimal.valueOf(1000))
+                .receipt("receipt123")
+                .build();
+
+        webTestClient.post()
+                .uri("/api/incomes")
+                .body(Mono.just(invalidIncome), Income.class)
+                .exchange()
+                .expectStatus().isBadRequest();
+
+        // Invalid values (negative amountReceived)
+        Income invalidIncome2 = Income.builder()
+                .reason("Freelance Work")
+                .incomeDate(LocalDate.now())
+                .quantity(1)
+                .amountReceived(BigDecimal.valueOf(-500)) // Invalid
+                .expectedAmount(BigDecimal.valueOf(1000))
+                .receipt("receipt123")
+                .createdBy("John Doe")
+                .build();
+
+        webTestClient.post()
+                .uri("/api/incomes")
+                .body(Mono.just(invalidIncome2), Income.class)
+                .exchange()
+                .expectStatus().isBadRequest();
+    }
+
+    @Test
     void testGetIncomeById() {
         Income income = Income.builder()
                 .reason("Project Completion")
@@ -99,6 +134,21 @@ class IncomeControllerIntegrationTest {
                 .jsonPath("$.reason").isEqualTo("Project Completion")
                 .jsonPath("$.dueBalance").exists() // Ensure the field is present
                 .jsonPath("$.dueBalance").isEqualTo(0.00); // Verify the correct value
+    }
+
+    @Test
+    void testGetIncomeByInvalidId() {
+        // Invalid ID format (should return 400 BAD_REQUEST)
+        webTestClient.get()
+                .uri("/api/incomes/invalid-id") // Invalid ObjectId format
+                .exchange()
+                .expectStatus().isBadRequest();
+
+        // Valid ObjectId format but non-existent (should return 404 NOT_FOUND)
+        webTestClient.get()
+                .uri("/api/incomes/1234567890abcdef12345678")
+                .exchange()
+                .expectStatus().isNotFound();
     }
 
 
@@ -138,6 +188,51 @@ class IncomeControllerIntegrationTest {
     }
 
     @Test
+    void testUpdateIncomeWithInvalidData() {
+        // Invalid ID format (should return 400 BAD_REQUEST)
+        Income updatedIncome = Income.builder()
+                .reason("Updated Freelance Work")
+                .incomeDate(LocalDate.now())
+                .quantity(1)
+                .amountReceived(BigDecimal.valueOf(700))
+                .expectedAmount(BigDecimal.valueOf(1000))
+                .receipt("receipt123")
+                .createdBy("John Doe")
+                .build();
+
+        webTestClient.put()
+                .uri("/api/incomes/invalid-id") // Invalid ObjectId format
+                .body(Mono.just(updatedIncome), Income.class)
+                .exchange()
+                .expectStatus().isBadRequest();
+
+        // Valid ObjectId format but non-existent (should return 404 NOT_FOUND)
+        webTestClient.put()
+                .uri("/api/incomes/1234567890abcdef12345678")
+                .body(Mono.just(updatedIncome), Income.class)
+                .exchange()
+                .expectStatus().isNotFound();
+
+        // Invalid values (negative amountReceived) (should return 400 BAD_REQUEST)
+        Income invalidIncome = Income.builder()
+                .reason("Updated Freelance Work")
+                .incomeDate(LocalDate.now())
+                .quantity(1)
+                .amountReceived(BigDecimal.valueOf(-700)) // Invalid
+                .expectedAmount(BigDecimal.valueOf(1000))
+                .receipt("receipt123")
+                .createdBy("John Doe")
+                .build();
+
+        webTestClient.put()
+                .uri("/api/incomes/1234567890abcdef12345678")
+                .body(Mono.just(invalidIncome), Income.class)
+                .exchange()
+                .expectStatus().isBadRequest();
+    }
+
+
+    @Test
     void testDeleteIncome() {
         Income income = Income.builder()
                 .reason("Project Completion")
@@ -161,6 +256,21 @@ class IncomeControllerIntegrationTest {
         // Verify that the income was actually deleted
         webTestClient.get()
                 .uri("/api/incomes/" + savedIncome.getId())
+                .exchange()
+                .expectStatus().isNotFound();
+    }
+
+    @Test
+    void testDeleteIncomeWithInvalidId() {
+        // Invalid ID format (should return 400 BAD_REQUEST)
+        webTestClient.delete()
+                .uri("/api/incomes/invalid-id")
+                .exchange()
+                .expectStatus().isBadRequest();
+
+        // Non-existent but valid MongoDB ObjectId (should return 404 NOT_FOUND)
+        webTestClient.delete()
+                .uri("/api/incomes/1234567890abcdef12345678")
                 .exchange()
                 .expectStatus().isNotFound();
     }
@@ -196,5 +306,15 @@ class IncomeControllerIntegrationTest {
                 .expectStatus().isOk()
                 .expectBodyList(Income.class)
                 .hasSize(2);
+    }
+
+    @Test
+    void testGetAllIncomesWithNoData() {
+        webTestClient.get()
+                .uri("/api/incomes")
+                .exchange()
+                .expectStatus().isOk()
+                .expectBodyList(Income.class)
+                .hasSize(0); // Verify that no incomes are returned
     }
 }

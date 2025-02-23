@@ -48,6 +48,10 @@ public class Income {
     private String createdBy;
 
     public void calculateDueBalance() {
-        this.dueBalance = this.expectedAmount.subtract(this.amountReceived);
+        if (this.expectedAmount != null && this.amountReceived != null) {
+            this.dueBalance = this.expectedAmount.subtract(this.amountReceived);
+        } else {
+            this.dueBalance = BigDecimal.ZERO;
+        }
     }
 }
